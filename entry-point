@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Entrypoint file : run this file in the command section of kubernetes 
+# @author wilson.v@husky.neu.edu
+
+
+
+#setup  ssh for passwordless access 
+/tools/setup_ssh;
+
+
+
+# configure hadoop only on the namenode
+role=`echo $ROLE | awk -F '-' '{print $1}'`
+
+if [ "$role" == "namenode" ]; then
+    #setup hadoop slaves config
+    /tools/setup_slaves
+   
+    bash -c "/tools/setup_hadoop";
+fi
+
+
+
+#prevent container from completing 
+tail -f /dev/null;

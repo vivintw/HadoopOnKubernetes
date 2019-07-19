@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: namenodes
+  labels:
+    app: namenode
+spec:
+  clusterIP: None
+  ports:
+  - port: 80
+  selector:
+    app: namenode
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: namenode
+  labels:
+    app: namenode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: namenode
+  template:
+    metadata:
+      labels:
+        app: namenode
+    spec:
+      hostname: namenode
+      subdomain: namenodes
+      containers:
+      - name: namenode
+        image: nctweb/hadoop:0.0.1
+        imagePullPolicy: Always
+        command: ["./entry-point"]
+        volumeMounts:
+        - name: secret
+          mountPath: /secret
+        env:
+        - name : NUM_DATAPODS
+          value : "2"
+        - name : ROLE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+      volumes:
+      - name: secret
+        secret:
+          secretName: name-node-secret

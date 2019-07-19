@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Assumption : this script must only be run once the secrets have been mounted 
+#   by kubernetetes into this pod
+# this script is sets up passwordless ssh for user root to all hadoop nodes
+# @author wilson.v@husky.neu.edu
+
+
+echo -e "root\nroot" | passwd root;
+
+mkdir -p /root/.ssh;
+
+if test -f "/secret/ssh-publickey"; then
+	cp /secret/ssh-publickey /root/.ssh/authorized_keys;
+fi
+
+if test -f "/secret/ssh-privatekey"; then
+	cp /secret/ssh-privatekey /root/.ssh/id_rsa;
+	chmod 700 /root/.ssh/id_rsa;
+fi
+
+echo -e 'PermitRootLogin yes\nPubkeyAuthentication yes' >> /etc/ssh/sshd_config;
+echo -e 'StrictHostKeyChecking no' >>/etc/ssh/ssh_config;
+
+mkdir -p /run/sshd; /usr/sbin/sshd;

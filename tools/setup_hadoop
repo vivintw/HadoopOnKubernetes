@@ -1,0 +1,79 @@
+#!/usr/bin/python
+import os
+import time
+
+'''
+ @version : Python 2.7 
+ @author wilson.v@husky.neu.edu
+'''
+
+
+'''
+  Assumption : sshd is running on the data nodes (Hadoop setup requires sshd to be running)
+  method to make sure that the datanode is up
+
+  @param datanode : the node to be checked
+  @return boolean : True datanode is up else False
+'''
+def check_ifup_datanode(datanode):
+    out = os.popen("nc -vz " + datanode + " 22 2>&1").read().strip().split()[-1:][0]
+    return out == 'open'
+
+
+'''
+  Assumption : all $HADOOP_HOME/bin and $HADOOP_HOME/sbin are in $PATH
+  function to setup HDFS on a new cluster 
+'''
+def setup_HDFS(num_datanodes):
+    os.system("hdfs namenode -format")
+    os.system("start-dfs.sh")
+    return "Live datanodes ("+str(num_datanodes)+")" in os.popen('hdfs dfsadmin -report').read().strip()
+
+
+'''
+    Assumption : all $HADOOP_HOME/bin and $HADOOP_HOME/sbin are in $PATH
+    function to setup YARN on a new cluster 
+'''
+def setup_YARN(num_datanodes):
+    os.system("start-yarn.sh")
+    time.sleep(5)
+    return len([i for i in os.popen("yarn node -list").read().strip().split() if "RUNNING" in i]) == num_datanodes
+
+'''
+  create default home directory for user root on HDFS
+'''
+def create_default_dir():
+    os.system("hdfs dfs -mkdir -p /user/root")
+
+
+if __name__ == "__main__":
+    # read location of hadoop conf from env 
+    hadoop_conf_dir = os.environ['HADOOP_CONF_DIR']
+
+    # read the slaves conf file to determine the available datanodes
+    with open(hadoop_conf_dir + "/slaves") as f:
+        datanodes = f.read().strip().split()
+    
+    looped = False
+
+    while not all([check_ifup_datanode(datanode) for datanode in datanodes]):
+        looped = True
+        print "waiting for datanodes"
+        time.sleep(5)
+
+    if looped:
+        print "wait for datanodes to initialize"
+        time.sleep(10)
+
+    if not setup_HDFS(len(datanodes)):
+        print "ERROR : Unable to setup HDFS"
+        exit(0)
+
+    if not setup_YARN(len(datanodes)):
+        print "ERROR : Unable to setup YARN"
+        exit(0)
+
+    create_default_dir()
+
+    print "SETUP COMPLETE"
+

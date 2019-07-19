@@ -1,0 +1,22 @@
+#!/usr/bin/python
+import os
+import time
+
+'''
+ @version : Python 2.7 
+ @author wilson.v@husky.neu.edu
+'''
+
+if __name__ == "__main__":
+    # read location of hadoop conf from env 
+    hadoop_conf_dir = os.environ['HADOOP_CONF_DIR']
+    num_slaves = int(os.environ['NUM_DATAPODS'])
+
+    # generate slaves from NUM_DATAPODS env variable 
+    with open(hadoop_conf_dir + "/slaves",'w') as f:
+        for i in range(num_slaves):
+            f.write("datanode-"+str(i)+".datanodes.default.svc.cluster.local\n")
+    
+    print "SLAVES SETUP COMPLETE"
+
+
